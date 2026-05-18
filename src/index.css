@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f6f1e8;
+  --panel: rgba(255, 250, 242, 0.88);
+  --panel-strong: rgba(255, 248, 238, 0.96);
+  --line: rgba(51, 43, 25, 0.14);
+  --text: #1d1a16;
+  --muted: #5f5449;
+  --accent: #2d788f;
+  --accent-2: #d86511;
+  --success: #477335;
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg: #120f0d;
+  --panel: rgba(22, 19, 16, 0.9);
+  --panel-strong: rgba(28, 24, 21, 0.96);
+  --line: rgba(236, 231, 214, 0.12);
+  --text: #f6f0e4;
+  --muted: #c0b6a4;
+  --accent: #71bfd2;
+  --accent-2: #ffa14f;
+  --success: #85b56f;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 200, 143, 0.26), transparent 28%),
+    radial-gradient(circle at top right, rgba(71, 115, 53, 0.16), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 30%),
+    var(--bg);
+  color: var(--text);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.panel {
+  @apply rounded-3xl border shadow-card backdrop-blur;
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+.panel-strong {
+  @apply rounded-3xl border shadow-card backdrop-blur;
+  background: var(--panel-strong);
+  border-color: var(--line);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(125, 107, 52, 0.25);
+  border-radius: 999px;
+}
+
+.tiptap {
+  outline: none;
+  min-height: 18rem;
+}
+
+.tiptap p {
+  margin: 0 0 0.85rem;
+}
+
+.tiptap [data-screenplay-type="scene-heading"] {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.tiptap [data-screenplay-type="character"] {
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.tiptap [data-screenplay-type="dialogue"],
+.tiptap [data-screenplay-type="parenthetical"] {
+  width: 58%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tiptap [data-screenplay-type="transition"] {
+  text-transform: uppercase;
+  text-align: right;
+  font-weight: 700;
+}
+
+.mention-chip {
+  @apply rounded-full px-2 py-1 text-xs font-semibold;
+  background: rgba(45, 120, 143, 0.12);
+  color: var(--accent);
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
