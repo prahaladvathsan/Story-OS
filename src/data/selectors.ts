@@ -124,6 +124,10 @@ export function extractPlainText(content: JSONContent | null | undefined): strin
 export function extractMentionsFromContent(content: JSONContent | null | undefined) {
   const mentions: Array<{ entityId: string; entityType: StoryEntityType; label: string }> = [];
 
+  if (!content) {
+    return mentions;
+  }
+
   const visit = (node: JSONContent | undefined) => {
     if (!node) {
       return;

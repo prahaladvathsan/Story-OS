@@ -53,9 +53,16 @@ export function SettingsPage() {
               if (!file) {
                 return;
               }
-              const importedProjectId = await importProjectBackup(file);
-              setMessage("Backup imported locally.");
-              navigate(`/project/${importedProjectId}`);
+              try {
+                const importedProjectId = await importProjectBackup(file);
+                setMessage("Backup imported locally.");
+                navigate(`/project/${importedProjectId}`);
+              } catch (error) {
+                console.error(error);
+                setMessage(error instanceof Error ? `Import failed: ${error.message}` : "Import failed.");
+              } finally {
+                event.currentTarget.value = "";
+              }
             }}
           />
         </div>

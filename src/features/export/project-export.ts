@@ -3,7 +3,7 @@ import { db } from "../../data/db";
 import type { AssetRecord, ProjectSnapshot } from "../../data/schema";
 import { deleteProject } from "../../data/repository";
 import { extractPlainText, getOrderedActs, getOrderedScenes } from "../../data/selectors";
-import { base64ToBlob, blobToBase64, downloadBlob, downloadText, slugify } from "../../lib/utils";
+import { downloadBlob, downloadText, slugify } from "../../lib/utils";
 
 type BackupAssetRecord = Omit<AssetRecord, "blob"> & {
   filePath?: string;
@@ -158,24 +158,26 @@ async function restoreBackupPayload(payload: BackupPayload, localAssets: Record<
 
   await db.transaction(
     "rw",
-    db.projects,
-    db.assets,
-    db.characters,
-    db.locations,
-    db.items,
-    db.factions,
-    db.characterRelationships,
-    db.factionMemberships,
-    db.entityLinks,
-    db.acts,
-    db.scenes,
-    db.arcs,
-    db.sceneArcTags,
-    db.foreshadowingPairs,
-    db.sceneDrafts,
-    db.entityMentions,
-    db.uiState,
-    db.recentEdits,
+    [
+      db.projects,
+      db.assets,
+      db.characters,
+      db.locations,
+      db.items,
+      db.factions,
+      db.characterRelationships,
+      db.factionMemberships,
+      db.entityLinks,
+      db.acts,
+      db.scenes,
+      db.arcs,
+      db.sceneArcTags,
+      db.foreshadowingPairs,
+      db.sceneDrafts,
+      db.entityMentions,
+      db.uiState,
+      db.recentEdits,
+    ],
     async () => {
       await db.projects.put(payload.project);
       await db.assets.bulkPut(

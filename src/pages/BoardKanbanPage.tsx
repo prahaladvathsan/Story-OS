@@ -16,7 +16,7 @@ import { EmptyState } from "../components/shared/EmptyState";
 import { Button } from "../components/shared/Button";
 import { StatusBadge } from "../components/shared/StatusBadge";
 import { createDefaultActs, createEmptyDraft, createEmptyScene } from "../data/defaults";
-import { deleteAct, deleteScene, saveAct, saveScene } from "../data/repository";
+import { deleteAct, deleteScene, saveAct, saveScene, saveSceneDraft } from "../data/repository";
 import { groupScenesByAct, getSceneArcs } from "../data/selectors";
 import { useProjectSnapshot } from "../hooks/useProjectSnapshot";
 import { SceneDetailPanel } from "../features/board/SceneDetailPanel";
@@ -103,6 +103,7 @@ export function BoardKanbanPage() {
     const scene = createEmptyScene(projectId, actId, count);
     scene.title = `Scene ${snapshot.scenes.length + 1}`;
     await saveScene(scene);
+    await saveSceneDraft(createEmptyDraft(scene.id, snapshot.project.settings.defaultManuscriptMode));
     setSearchParams({ scene: scene.id });
   };
 

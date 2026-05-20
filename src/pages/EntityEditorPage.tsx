@@ -154,7 +154,7 @@ export function EntityEditorPage() {
         )
       : [];
 
-  const updateEntity = <T extends keyof StoryEntity>(key: T, value: StoryEntity[T]) => {
+  const updateEntity = (key: keyof StoryEntity | string, value: unknown) => {
     setDraftEntity((current) => (current ? ({ ...current, [key]: value, updatedAt: nowIso() } as StoryEntity) : current));
   };
 
@@ -217,7 +217,7 @@ export function EntityEditorPage() {
               <FieldShell label="Status">
                 <Select
                   value={draftEntity.status}
-                  onChange={(event) => updateEntity("status", event.target.value as StoryEntity["status"])}
+                  onChange={(event) => updateEntity("status", event.target.value)}
                 >
                         {validEntityType === "character"
                     ? ["alive", "dead", "missing", "unknown", "transformed"].map((option) => (
@@ -334,7 +334,7 @@ export function EntityEditorPage() {
                 <FieldShell label="Significance">
                   <Select
                     value={draftEntity.significance}
-                    onChange={(event) => updateEntity("significance", event.target.value as StoryEntity["significance"])}
+                    onChange={(event) => updateEntity("significance", event.target.value)}
                   >
                     {["macguffin", "chekhovs_gun", "symbolic", "quest_item", "weapon", "key", "other"].map((option) => (
                       <option key={option} value={option}>

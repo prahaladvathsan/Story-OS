@@ -36,13 +36,6 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
     Boolean(draft),
   );
 
-  useEffect(() => {
-    if (!sceneId) {
-      return;
-    }
-    void replaceSceneArcTags(sceneId, selectedArcIds);
-  }, [sceneId, selectedArcIds]);
-
   const foreshadowing = useMemo(
     () =>
       snapshot.foreshadowingPairs.filter((pair) => pair.setupSceneId === sceneId || pair.payoffSceneId === sceneId),
@@ -59,6 +52,12 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
 
   const toggleArrayValue = (items: string[], value: string) =>
     items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
+
+  const toggleArcTag = (arcId: string) => {
+    const nextArcIds = toggleArrayValue(selectedArcIds, arcId);
+    setSelectedArcIds(nextArcIds);
+    void replaceSceneArcTags(draft.id, nextArcIds);
+  };
 
   return (
     <div className="panel p-6">
@@ -190,11 +189,7 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
                 <input
                   type="checkbox"
                   checked={selectedArcIds.includes(arc.id)}
-                  onChange={() =>
-                    setSelectedArcIds((current) =>
-                      current.includes(arc.id) ? current.filter((id) => id !== arc.id) : [...current, arc.id],
-                    )
-                  }
+                  onChange={() => toggleArcTag(arc.id)}
                 />
                 <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: arc.color }} />
                 {arc.name}

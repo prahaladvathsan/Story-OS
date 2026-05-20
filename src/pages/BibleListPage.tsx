@@ -283,7 +283,7 @@ export function BibleListPage() {
               </div>
               {"status" in entity ? <div className="mt-3"><StatusBadge value={entity.status} /></div> : null}
               <p className="mt-3 text-sm leading-6 text-[color:var(--muted)] line-clamp-3">
-                {"description" in entity ? entity.description : entity.notes || "Open this card to start defining it."}
+                {entity.description || entity.notes || "Open this card to start defining it."}
               </p>
             </button>
           ))}

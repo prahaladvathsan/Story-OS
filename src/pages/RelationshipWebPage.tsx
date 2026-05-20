@@ -1,11 +1,12 @@
 import { useState } from "react";
-import ReactFlow, {
+import {
   Background,
   Controls,
   MiniMap,
+  ReactFlow,
   type Edge,
   type Node,
-  type NodeDragHandler,
+  type OnNodeDrag,
 } from "@xyflow/react";
 import { useNavigate, useParams } from "react-router-dom";
 import { EmptyState } from "../components/shared/EmptyState";
@@ -103,7 +104,7 @@ export function RelationshipWebPage() {
       },
     }));
 
-  const handleNodeDragStop: NodeDragHandler = async (_, node) => {
+  const handleNodeDragStop: OnNodeDrag = async (_, node) => {
     const nextPositions: PositionMap = {
       ...savedPositions,
       [node.id]: node.position,

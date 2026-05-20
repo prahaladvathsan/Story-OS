@@ -9,10 +9,16 @@ export function useAutosave<T>(
   enabled = true,
 ) {
   const firstRun = useRef(true);
+  const onSaveRef = useRef(onSave);
   const [status, setStatus] = useState<SaveState>("idle");
 
   useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  useEffect(() => {
     if (!enabled) {
+      firstRun.current = true;
       return;
     }
 
@@ -24,7 +30,7 @@ export function useAutosave<T>(
     setStatus("saving");
     const timeoutId = window.setTimeout(async () => {
       try {
-        await onSave(value);
+        await onSaveRef.current(value);
         setStatus("saved");
       } catch (error) {
         console.error(error);
@@ -33,8 +39,7 @@ export function useAutosave<T>(
     }, delay);
 
     return () => window.clearTimeout(timeoutId);
-  }, [delay, enabled, onSave, value]);
+  }, [delay, enabled, value]);
 
   return status;
 }
-

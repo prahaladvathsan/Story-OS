@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Save, Search, WandSparkles } from "lucide-react";
@@ -26,6 +26,11 @@ const screenplayButtons = [
   ["transition", "Transition"],
 ] as const;
 
+const emptyEditorContent = {
+  type: "doc",
+  content: [{ type: "paragraph", attrs: { screenplayType: "action" } }],
+};
+
 export function DraftScenePage() {
   const navigate = useNavigate();
   const { projectId = "", sceneId = "" } = useParams();
@@ -35,6 +40,7 @@ export function DraftScenePage() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("context");
   const [searchQuery, setSearchQuery] = useState("");
   const [focusedEntity, setFocusedEntity] = useState<{ entityType: StoryEntityType; entityId: string } | null>(null);
+  const hydratedSceneId = useRef<string>();
   const orderedScenes = snapshot ? getOrderedScenes(snapshot.acts, snapshot.scenes) : [];
   const sceneIndex = orderedScenes.findIndex((scene) => scene.id === sceneId);
   const scene = orderedScenes[sceneIndex];
@@ -66,7 +72,7 @@ export function DraftScenePage() {
   const editor = useEditor(
     {
       extensions: createEditorExtensions(mentionItems),
-      content: draftState?.content ?? { type: "doc", content: [{ type: "paragraph", attrs: { screenplayType: "action" } }] },
+      content: draftState?.content ?? emptyEditorContent,
       autofocus: false,
       editorProps: {
         attributes: {
@@ -88,10 +94,13 @@ export function DraftScenePage() {
   );
 
   useEffect(() => {
-    if (editor && draftState?.content) {
-      editor.commands.setContent(draftState.content, false);
+    if (!editor || !draftState || hydratedSceneId.current === sceneId) {
+      return;
     }
-  }, [draftState?.content, editor]);
+
+    editor.commands.setContent(draftState.content ?? emptyEditorContent, false);
+    hydratedSceneId.current = sceneId;
+  }, [draftState, editor, sceneId]);
 
   const autosaveStatus = useAutosave(
     draftState,
@@ -306,7 +315,7 @@ export function DraftScenePage() {
                 <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Quick View</div>
                 <div className="mt-2 font-display text-2xl font-bold">{quickViewEntity.name}</div>
                 <div className="mt-3 text-sm text-[color:var(--muted)]">
-                  {"description" in quickViewEntity ? quickViewEntity.description || quickViewEntity.notes : quickViewEntity.notes}
+                  {quickViewEntity.description || quickViewEntity.notes}
                 </div>
                 <div className="mt-4">
                   <Link to={`/project/${projectId}/bible/${focusedEntity?.entityType}/${quickViewEntity.id}`}>

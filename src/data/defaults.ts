@@ -218,7 +218,7 @@ export function createSampleProject(): SampleProjectBundle {
   const acts = createDefaultActs(project.id);
   const now = nowIso();
 
-  const joe = {
+  const joe: Character = {
     ...(createEmptyEntity(project.id, "character") as Character),
     name: "Detective Joe Mercer",
     description: "A worn detective with an eye for rot beneath the city gloss.",
@@ -229,7 +229,7 @@ export function createSampleProject(): SampleProjectBundle {
     personalityTraits: ["stubborn", "observant", "self-destructive"],
   };
 
-  const vera = {
+  const vera: Character = {
     ...(createEmptyEntity(project.id, "character") as Character),
     name: "Vera Vale",
     description: "A jazz singer with perfect poise and carefully rationed honesty.",
@@ -238,7 +238,7 @@ export function createSampleProject(): SampleProjectBundle {
     tags: ["femme fatale"],
   };
 
-  const malloy = {
+  const malloy: Character = {
     ...(createEmptyEntity(project.id, "character") as Character),
     name: "Sgt. Malloy",
     description: "A police sergeant who learned how to survive by selling pieces of himself.",
@@ -246,7 +246,7 @@ export function createSampleProject(): SampleProjectBundle {
     tags: ["antagonist"],
   };
 
-  const kane = {
+  const kane: Character = {
     ...(createEmptyEntity(project.id, "character") as Character),
     name: "Marcus Kane",
     description: "Crime boss with civic polish and surgical violence.",
@@ -254,7 +254,7 @@ export function createSampleProject(): SampleProjectBundle {
     tags: ["crime boss"],
   };
 
-  const danny = {
+  const danny: Character = {
     ...(createEmptyEntity(project.id, "character") as Character),
     name: "Danny Cross",
     description: "Joe's old friend, dead before the film begins but alive in motive.",
@@ -262,39 +262,39 @@ export function createSampleProject(): SampleProjectBundle {
     tags: ["victim"],
   };
 
-  const office = {
+  const office: Location = {
     ...(createEmptyEntity(project.id, "location") as Location),
     name: "Joe's Office",
     description: "Peeling walls, stale coffee, and the sound of rain needling the window frame.",
   };
 
-  const club = {
+  const club: Location = {
     ...(createEmptyEntity(project.id, "location") as Location),
     name: "Blue Moon Jazz Club",
     description: "Low light, lacquered booths, and a bandstand wrapped in cigarette haze.",
   };
 
-  const warehouse = {
+  const warehouse: Location = {
     ...(createEmptyEntity(project.id, "location") as Location),
     name: "Waterfront Warehouse",
     description: "Crates, tarps, and enough darkness to hide a decade of sins.",
   };
 
-  const locket = {
+  const locket: Item = {
     ...(createEmptyEntity(project.id, "item") as Item),
     name: "Danny's Locket",
     significance: "macguffin",
     description: "An old locket containing a photograph that should not exist.",
   };
 
-  const report = {
+  const report: Item = {
     ...(createEmptyEntity(project.id, "item") as Item),
     name: "Forged Police Report",
     significance: "chekhovs_gun",
     description: "A file that proves the department bent around Kane long before Joe noticed.",
   };
 
-  const org = {
+  const org: Faction = {
     ...(createEmptyEntity(project.id, "faction") as Faction),
     name: "Kane Organization",
     ideology: "Control through leverage, fear, and selective generosity.",
