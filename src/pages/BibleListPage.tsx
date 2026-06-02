@@ -84,6 +84,15 @@ export function BibleListPage() {
   const [bulkTag, setBulkTag] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const sensors = useSensors(useSensor(PointerSensor));
+  const statusOptions = useMemo(() => {
+    if (entityType === "character") {
+      return ["all", "alive", "dead", "missing", "unknown", "transformed"];
+    }
+    if (entityType === "item") {
+      return ["all", "intact", "broken", "lost", "hidden", "destroyed", "unknown"];
+    }
+    return ["all"];
+  }, [entityType]);
 
   if (!isEntityType(entityType)) {
     return <EmptyState title="Unknown entity type" description="Pick a valid Bible section from the navigation." />;
@@ -168,16 +177,6 @@ export function BibleListPage() {
       ),
     );
   };
-
-  const statusOptions = useMemo(() => {
-    if (entityType === "character") {
-      return ["all", "alive", "dead", "missing", "unknown", "transformed"];
-    }
-    if (entityType === "item") {
-      return ["all", "intact", "broken", "lost", "hidden", "destroyed", "unknown"];
-    }
-    return ["all"];
-  }, [entityType]);
 
   return (
     <div className="space-y-6">

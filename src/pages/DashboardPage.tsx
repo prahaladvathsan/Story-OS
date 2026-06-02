@@ -1,10 +1,11 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { EmptyState } from "../components/shared/EmptyState";
 import { MetricCard } from "../components/shared/MetricCard";
 import { useProjectSnapshot } from "../hooks/useProjectSnapshot";
 import { formatDateTime } from "../lib/utils";
 import { getArcCoverage, getDashboardStats, getOrderedScenes } from "../data/selectors";
 import { StatusBadge } from "../components/shared/StatusBadge";
+import { Button } from "../components/shared/Button";
 
 export function DashboardPage() {
   const { projectId = "" } = useParams();
@@ -33,6 +34,42 @@ export function DashboardPage() {
           value={stats.unresolvedForeshadowing.length}
           hint="Planted but still missing a payoff scene"
         />
+      </section>
+
+      <section className="panel p-6">
+        <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">How to use Story OS</div>
+        <h2 className="mt-2 font-display text-3xl font-bold">Write from the graph into the draft</h2>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[color:var(--line)] p-4">
+            <div className="text-sm font-semibold">1. Build the Bible</div>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              Add characters, places, factions, and objects so scenes can reference the story world.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[color:var(--line)] p-4">
+            <div className="text-sm font-semibold">2. Shape the Board</div>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              Create acts and scenes, tag arcs, and mark setup/payoff pairs before drafting.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[color:var(--line)] p-4">
+            <div className="text-sm font-semibold">3. Draft and back up</div>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              Open scenes from Draft or Manuscript, write with entity mentions, then export a backup.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link to={`/project/${projectId}/bible/character`}>
+            <Button variant="secondary">Bible</Button>
+          </Link>
+          <Link to={`/project/${projectId}/board/kanban`}>
+            <Button variant="secondary">Board</Button>
+          </Link>
+          <Link to={`/project/${projectId}/draft`}>
+            <Button>Manuscript</Button>
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
