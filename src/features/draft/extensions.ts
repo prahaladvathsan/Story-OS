@@ -4,6 +4,14 @@ import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import type { Editor } from "@tiptap/react";
 import type { StoryEntityType } from "../../data/schema";
+import { entityLabels } from "../bible/config";
+
+const allEntityTypes: StoryEntityType[] = ["character", "location", "item", "faction"];
+
+export type CreateEntityCallback = (
+  entityType: StoryEntityType,
+  name: string,
+) => Promise<{ id: string; label: string; entityType: StoryEntityType } | undefined>;
 
 export const ScreenplayParagraph = Paragraph.extend({
   addAttributes() {
@@ -23,6 +31,7 @@ type MentionItem = {
   id: string;
   label: string;
   entityType: StoryEntityType;
+  isCreate?: boolean;
 };
 
 type SuggestionProps = {
@@ -33,10 +42,15 @@ type SuggestionProps = {
   event?: KeyboardEvent;
 };
 
-function createMentionSuggestion(itemsSource: MentionItem[]) {
+function createMentionSuggestion(
+  itemsSource: MentionItem[],
+  onCreateEntity?: CreateEntityCallback,
+  enabledCreateTypes: StoryEntityType[] = allEntityTypes,
+) {
   let container: HTMLDivElement | null = null;
   let selectedIndex = 0;
   let currentItems: MentionItem[] = [];
+  let currentQuery = "";
 
   const position = (rect?: DOMRect | null) => {
     if (!container || !rect) {
@@ -47,6 +61,21 @@ function createMentionSuggestion(itemsSource: MentionItem[]) {
     container.style.top = `${rect.bottom + window.scrollY + 8}px`;
   };
 
+  const runItem = async (item: MentionItem, command: SuggestionProps["command"]) => {
+    if (item.isCreate && onCreateEntity) {
+      const name = currentQuery.trim();
+      if (!name) return;
+      try {
+        const created = await onCreateEntity(item.entityType, name);
+        if (created) command(created);
+      } catch (error) {
+        console.error("Failed to create entity from mention:", error);
+      }
+      return;
+    }
+    command(item);
+  };
+
   const renderList = (props: SuggestionProps) => {
     if (!container) {
       return;
@@ -55,7 +84,7 @@ function createMentionSuggestion(itemsSource: MentionItem[]) {
     currentItems = props.items;
     container.innerHTML = "";
     container.className =
-      "z-[80] flex max-h-64 w-80 flex-col overflow-auto rounded-2xl border border-[color:var(--line)] bg-[color:var(--panel-strong)] p-2 shadow-card backdrop-blur";
+      "z-[80] flex max-h-72 w-80 flex-col overflow-auto rounded-2xl border border-[color:var(--line)] bg-[color:var(--panel-strong)] p-2 shadow-card backdrop-blur";
 
     if (currentItems.length === 0) {
       const empty = document.createElement("div");
@@ -68,21 +97,39 @@ function createMentionSuggestion(itemsSource: MentionItem[]) {
     currentItems.forEach((item, index) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = `rounded-xl px-3 py-2 text-left text-sm ${index === selectedIndex ? "bg-black/5 dark:bg-white/10" : ""}`;
-      button.innerHTML = `<div style="font-weight:600">${item.label}</div><div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65">${item.entityType}</div>`;
+      const baseClasses = "rounded-xl px-3 py-2 text-left text-sm";
+      const activeClass = index === selectedIndex ? "bg-black/5 dark:bg-white/10" : "";
+      const createClass = item.isCreate
+        ? "border-t border-[color:var(--line)] mt-1 pt-2 italic text-[color:var(--muted)]"
+        : "";
+      button.className = `${baseClasses} ${activeClass} ${createClass}`.trim();
+      const subtitle = item.isCreate ? "create new" : item.entityType;
+      button.innerHTML = `<div style="font-weight:600">${item.label}</div><div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65">${subtitle}</div>`;
       button.addEventListener("mousedown", (event) => {
         event.preventDefault();
-        props.command(item);
+        void runItem(item, props.command);
       });
       container?.appendChild(button);
     });
   };
 
   return {
-    items: ({ query }: { query: string }) =>
-      itemsSource
+    items: ({ query }: { query: string }) => {
+      currentQuery = query;
+      const filtered = itemsSource
         .filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 8),
+        .slice(0, 8);
+      if (onCreateEntity && query.trim()) {
+        const createOptions: MentionItem[] = enabledCreateTypes.map((entityType) => ({
+          id: `__create_${entityType}__`,
+          label: `Create ${entityLabels[entityType].toLowerCase()} "${query.trim()}"`,
+          entityType,
+          isCreate: true,
+        }));
+        return [...filtered, ...createOptions];
+      }
+      return filtered;
+    },
     render: () => ({
       onStart: (props: SuggestionProps) => {
         selectedIndex = 0;
@@ -103,18 +150,20 @@ function createMentionSuggestion(itemsSource: MentionItem[]) {
 
         if (props.event.key === "ArrowDown") {
           selectedIndex = (selectedIndex + 1) % Math.max(currentItems.length, 1);
+          renderListSelectionOnly();
           return true;
         }
 
         if (props.event.key === "ArrowUp") {
           selectedIndex = (selectedIndex - 1 + currentItems.length) % Math.max(currentItems.length, 1);
+          renderListSelectionOnly();
           return true;
         }
 
         if (props.event.key === "Enter") {
           const item = currentItems[selectedIndex];
           if (item) {
-            props.command(item);
+            void runItem(item, props.command);
             return true;
           }
         }
@@ -133,9 +182,24 @@ function createMentionSuggestion(itemsSource: MentionItem[]) {
       },
     }),
   };
+
+  function renderListSelectionOnly() {
+    if (!container) return;
+    Array.from(container.children).forEach((child, index) => {
+      const element = child as HTMLElement;
+      if (element.tagName === "BUTTON") {
+        element.classList.toggle("bg-black/5", index === selectedIndex);
+        element.classList.toggle("dark:bg-white/10", index === selectedIndex);
+      }
+    });
+  }
 }
 
-export function createEditorExtensions(items: MentionItem[]) {
+export function createEditorExtensions(
+  items: MentionItem[],
+  onCreateEntity?: CreateEntityCallback,
+  enabledCreateTypes?: StoryEntityType[],
+) {
   return [
     ScreenplayParagraph,
     StarterKit.configure({
@@ -148,7 +212,7 @@ export function createEditorExtensions(items: MentionItem[]) {
       HTMLAttributes: {
         class: "mention-chip",
       },
-      suggestion: createMentionSuggestion(items) as never,
+      suggestion: createMentionSuggestion(items, onCreateEntity, enabledCreateTypes) as never,
       renderText: ({ node }) => `@${node.attrs.label ?? "entity"}`,
     }),
   ];

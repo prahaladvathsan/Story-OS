@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Save, Search, WandSparkles } from "lucide-react";
 import { EmptyState } from "../components/shared/EmptyState";
 import { Button } from "../components/shared/Button";
-import { createEmptyDraft } from "../data/defaults";
-import { getContinuityContext, getEntityByType, getOrderedScenes, searchProjectContent } from "../data/selectors";
-import { saveSceneDraft } from "../data/repository";
+import { createEmptyDraft, createEmptyEntity } from "../data/defaults";
+import { getActiveModules, getContinuityContext, getEntityByType, getOrderedScenes, searchProjectContent } from "../data/selectors";
+import { saveEntity, saveSceneDraft } from "../data/repository";
 import { useProjectSnapshot } from "../hooks/useProjectSnapshot";
 import { useAutosave } from "../hooks/useAutosave";
 import { useHotkeys } from "../hooks/useHotkeys";
 import { useUiStore } from "../store/ui-store";
 import { createEditorExtensions, insertScreenplayType } from "../features/draft/extensions";
-import type { SceneDraft, StoryEntityType } from "../data/schema";
+import type { SceneDraft, StoryEntity, StoryEntityType } from "../data/schema";
 import { StatusBadge } from "../components/shared/StatusBadge";
 
 type SidebarTab = "context" | "search";
@@ -56,22 +56,44 @@ export function DraftScenePage() {
     setDraftState(existingDraft ?? createEmptyDraft(scene.id, snapshot.project.settings.defaultManuscriptMode));
   }, [scene, snapshot]);
 
+  const modules = snapshot ? getActiveModules(snapshot.project) : undefined;
+  const enabledTypes = useMemo<StoryEntityType[]>(() => {
+    const list: StoryEntityType[] = ["character", "location"];
+    if (modules?.items) list.push("item");
+    if (modules?.factions) list.push("faction");
+    return list;
+  }, [modules?.items, modules?.factions]);
+
   const mentionItems = useMemo(
     () =>
       snapshot
         ? [
             ...snapshot.characters.map((entity) => ({ id: entity.id, label: entity.name, entityType: "character" as const })),
             ...snapshot.locations.map((entity) => ({ id: entity.id, label: entity.name, entityType: "location" as const })),
-            ...snapshot.items.map((entity) => ({ id: entity.id, label: entity.name, entityType: "item" as const })),
-            ...snapshot.factions.map((entity) => ({ id: entity.id, label: entity.name, entityType: "faction" as const })),
+            ...(modules?.items
+              ? snapshot.items.map((entity) => ({ id: entity.id, label: entity.name, entityType: "item" as const }))
+              : []),
+            ...(modules?.factions
+              ? snapshot.factions.map((entity) => ({ id: entity.id, label: entity.name, entityType: "faction" as const }))
+              : []),
           ]
         : [],
-    [snapshot],
+    [snapshot, modules?.items, modules?.factions],
+  );
+
+  const handleCreateEntity = useCallback(
+    async (entityType: StoryEntityType, name: string) => {
+      const entity = createEmptyEntity(projectId, entityType) as StoryEntity;
+      entity.name = name;
+      const saved = await saveEntity(entityType, entity);
+      return { id: saved.id, label: saved.name, entityType };
+    },
+    [projectId],
   );
 
   const editor = useEditor(
     {
-      extensions: createEditorExtensions(mentionItems),
+      extensions: createEditorExtensions(mentionItems, handleCreateEntity, enabledTypes),
       content: draftState?.content ?? emptyEditorContent,
       autofocus: false,
       editorProps: {

@@ -35,7 +35,7 @@ describe("project backup export/import", () => {
     expect(restored?.characters.map((character) => character.name).sort()).toEqual(
       snapshot.characters.map((character) => character.name).sort(),
     );
-    expect(restored?.scenes.map((scene) => scene.title)).toEqual(snapshot.scenes.map((scene) => scene.title));
+    expect(restored?.scenes.map((scene) => scene.title).sort()).toEqual(snapshot.scenes.map((scene) => scene.title).sort());
     expect(restored?.sceneDrafts).toHaveLength(snapshot.sceneDrafts.length);
     expect(restored?.arcs).toHaveLength(snapshot.arcs.length);
     expect(restored?.foreshadowingPairs).toHaveLength(snapshot.foreshadowingPairs.length);

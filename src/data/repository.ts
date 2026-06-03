@@ -40,7 +40,7 @@ import {
   type StoryEntityType,
   type UiStateRecord,
 } from "./schema";
-import { createAppSettings, createDefaultActs, createDefaultProject, createSampleProject } from "./defaults";
+import { createAppSettings, createDefaultActs, createDefaultProject, createEmptyDraft, createEmptyScene, createSampleProject } from "./defaults";
 import { createId, nowIso } from "../lib/utils";
 import { countDraftWords, extractMentionsFromContent, extractPlainText } from "./selectors";
 
@@ -65,14 +65,29 @@ export async function saveAppSettings(updates: Partial<AppSettings>) {
 export async function createProject(name: string) {
   const project = projectSchema.parse(createDefaultProject(name));
   const acts = createDefaultActs(project.id).map((act) => actSchema.parse(act));
+  const starterScene = sceneSchema.parse({
+    ...createEmptyScene(project.id, acts[0].id, 0),
+    title: "Scene 1",
+  });
+  const starterDraft = sceneDraftSchema.parse(
+    createEmptyDraft(starterScene.id, project.settings.defaultManuscriptMode),
+  );
 
-  await db.transaction("rw", db.projects, db.acts, async () => {
+  await db.transaction("rw", db.projects, db.acts, db.scenes, db.sceneDrafts, async () => {
     await db.projects.add(project);
     await db.acts.bulkAdd(acts);
+    await db.scenes.add(starterScene);
+    await db.sceneDrafts.add(starterDraft);
   });
 
   await saveAppSettings({ lastOpenedProjectId: project.id });
   return project;
+}
+
+export async function saveProject(project: Project) {
+  const next = projectSchema.parse({ ...project, updatedAt: nowIso() });
+  await db.projects.put(next);
+  return next;
 }
 
 export async function seedSampleProject() {

@@ -31,6 +31,13 @@ export function createDefaultProject(name = "Untitled Story"): Project {
     settings: {
       theme: "light",
       defaultManuscriptMode: "prose",
+      modules: {
+        arcs: false,
+        foreshadowing: false,
+        factions: false,
+        items: false,
+        relationshipGraph: false,
+      },
     },
   };
 }
@@ -214,6 +221,13 @@ export function createSampleProject(): SampleProjectBundle {
   project.format = "screenplay";
   project.description = "A moody noir sample project seeded for Story OS exploration.";
   project.settings.defaultManuscriptMode = "screenplay";
+  project.settings.modules = {
+    arcs: true,
+    foreshadowing: true,
+    factions: true,
+    items: true,
+    relationshipGraph: true,
+  };
 
   const acts = createDefaultActs(project.id);
   const now = nowIso();

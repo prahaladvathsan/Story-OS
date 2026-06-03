@@ -111,10 +111,19 @@ const coreEntitySchema = projectScopedSchema.extend({
   sortOrder: z.number().default(0),
 });
 
+export const projectModulesSchema = z.object({
+  arcs: z.boolean().default(false),
+  foreshadowing: z.boolean().default(false),
+  factions: z.boolean().default(false),
+  items: z.boolean().default(false),
+  relationshipGraph: z.boolean().default(false),
+});
+
 export const projectSettingsSchema = z.object({
   theme: z.enum(themeModes).default("light"),
   defaultManuscriptMode: z.enum(manuscriptModes).default("prose"),
   targetWordCount: z.number().optional(),
+  modules: projectModulesSchema.optional(),
 });
 
 export const projectSchema = baseSchema.extend({
@@ -276,6 +285,7 @@ export const appSettingsSchema = z.object({
 export type StoryEntityType = (typeof entityTypes)[number];
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
+export type ProjectModules = z.infer<typeof projectModulesSchema>;
 export type Character = z.infer<typeof characterSchema>;
 export type Location = z.infer<typeof locationSchema>;
 export type Item = z.infer<typeof itemSchema>;

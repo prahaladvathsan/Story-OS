@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Network, Plus, Trash2, Upload } from "lucide-react";
 import { EntityImage } from "../components/shared/EntityImage";
 import { EmptyState } from "../components/shared/EmptyState";
 import { Button } from "../components/shared/Button";
 import { FieldShell, Select, TextArea, TextInput } from "../components/shared/Field";
 import { TagEditor } from "../components/shared/TagEditor";
 import { KeyValueEditor } from "../components/shared/KeyValueEditor";
+import { LinkifiedText } from "../components/shared/LinkifiedText";
+import { Modal } from "../components/shared/Modal";
+import { RelationshipWeb } from "../features/wiki/RelationshipWeb";
 import {
   buildBacklinks,
+  findEntityWithType,
+  getActiveModules,
   getEntityByType,
   getEntityCollection,
   getLinksForEntity,
@@ -88,14 +93,18 @@ function createEmptyEntityLink(projectId: string, entityType: StoryEntityType, e
 }
 
 export function EntityEditorPage() {
-  const { projectId = "", entityType = "character", entityId = "" } = useParams();
+  const navigate = useNavigate();
+  const { projectId = "", entityType: urlEntityType, entityId = "" } = useParams();
   const snapshot = useProjectSnapshot(projectId);
-  const validEntityType = isEntityType(entityType) ? entityType : undefined;
+  const fromUrl = urlEntityType && isEntityType(urlEntityType) ? urlEntityType : undefined;
+  const fromLookup = snapshot && !fromUrl ? findEntityWithType(snapshot, entityId) : undefined;
+  const validEntityType = fromUrl ?? fromLookup?.entityType;
   const [draftEntity, setDraftEntity] = useState<StoryEntity | null>(null);
   const [externalImageUrl, setExternalImageUrl] = useState("");
   const [relationshipDraft, setRelationshipDraft] = useState<CharacterRelationship | null>(null);
   const [membershipDraft, setMembershipDraft] = useState<FactionMembership | null>(null);
   const [linkDraft, setLinkDraft] = useState<EntityLink | null>(null);
+  const [graphOpen, setGraphOpen] = useState(false);
   const entity = snapshot && validEntityType ? getEntityByType(snapshot, validEntityType, entityId) : undefined;
 
   useEffect(() => {
@@ -130,25 +139,22 @@ export function EntityEditorPage() {
   );
   const traitSuggestions = useMemo(() => (snapshot ? getTraitSuggestions(snapshot.characters) : []), [snapshot]);
 
-  if (!validEntityType) {
-    return <EmptyState title="Unknown entity type" description="Pick a valid Bible section from the navigation." />;
-  }
-
   if (!snapshot) {
     return <EmptyState title="Loading entity" description="Pulling this card from the story graph." />;
   }
 
-  if (!entity || !draftEntity) {
+  if (!validEntityType || !entity || !draftEntity) {
     return <EmptyState title="Entity not found" description="This card no longer exists in the project." />;
   }
 
+  const modules = getActiveModules(snapshot.project);
   const memberships =
-    entityType === "character"
+    validEntityType === "character"
       ? getMembershipsForCharacter(snapshot.factionMemberships, snapshot.factions, entity.id)
       : [];
   const links = getLinksForEntity(snapshot.entityLinks, entity.id);
   const characterRelationships =
-    entityType === "character"
+    validEntityType === "character"
       ? snapshot.characterRelationships.filter(
           (relationship) => relationship.characterAId === entity.id || relationship.characterBId === entity.id,
         )
@@ -181,13 +187,21 @@ export function EntityEditorPage() {
       <section className="grid gap-6 xl:grid-cols-[0.42fr_0.58fr]">
         <div className="panel p-6">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">
                 {entityLabels[validEntityType]} Editor
               </div>
               <h2 className="mt-2 font-display text-4xl font-bold">{draftEntity.name || `Untitled ${entityLabels[validEntityType]}`}</h2>
             </div>
-            <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">{autosaveStatus}</div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">{autosaveStatus}</div>
+              {modules.relationshipGraph ? (
+                <Button variant="secondary" size="sm" onClick={() => setGraphOpen(true)}>
+                  <Network size={14} />
+                  View as graph
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-6 space-y-4">
@@ -237,8 +251,12 @@ export function EntityEditorPage() {
 
           {"description" in draftEntity ? (
             <div className="mt-4">
-              <FieldShell label="Description">
-                <TextArea value={draftEntity.description} onChange={(event) => updateEntity("description", event.target.value)} />
+              <FieldShell label="Description" hint="Use [[Name]] to link a wiki entry. Unresolved links show in amber.">
+                <LinkifiedText
+                  value={draftEntity.description}
+                  onChange={(value) => updateEntity("description", value)}
+                  snapshot={snapshot}
+                />
               </FieldShell>
             </div>
           ) : null}
@@ -271,25 +289,25 @@ export function EntityEditorPage() {
             {"backstory" in draftEntity ? (
               <>
                 <FieldShell label="Backstory">
-                  <TextArea value={draftEntity.backstory} onChange={(event) => updateEntity("backstory", event.target.value)} />
+                  <LinkifiedText value={draftEntity.backstory} onChange={(value) => updateEntity("backstory", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Motivation">
-                  <TextArea value={draftEntity.motivation} onChange={(event) => updateEntity("motivation", event.target.value)} />
+                  <LinkifiedText value={draftEntity.motivation} onChange={(value) => updateEntity("motivation", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Internal Need">
-                  <TextArea value={draftEntity.internalNeed} onChange={(event) => updateEntity("internalNeed", event.target.value)} />
+                  <LinkifiedText value={draftEntity.internalNeed} onChange={(value) => updateEntity("internalNeed", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Voice Notes">
-                  <TextArea value={draftEntity.voiceNotes} onChange={(event) => updateEntity("voiceNotes", event.target.value)} />
+                  <LinkifiedText value={draftEntity.voiceNotes} onChange={(value) => updateEntity("voiceNotes", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Flaws">
-                  <TextArea value={draftEntity.flaws} onChange={(event) => updateEntity("flaws", event.target.value)} />
+                  <LinkifiedText value={draftEntity.flaws} onChange={(value) => updateEntity("flaws", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Fears">
-                  <TextArea value={draftEntity.fears} onChange={(event) => updateEntity("fears", event.target.value)} />
+                  <LinkifiedText value={draftEntity.fears} onChange={(value) => updateEntity("fears", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Secrets">
-                  <TextArea value={draftEntity.secrets} onChange={(event) => updateEntity("secrets", event.target.value)} />
+                  <LinkifiedText value={draftEntity.secrets} onChange={(value) => updateEntity("secrets", value)} snapshot={snapshot} />
                 </FieldShell>
               </>
             ) : null}
@@ -297,13 +315,13 @@ export function EntityEditorPage() {
             {"sensoryDetails" in draftEntity ? (
               <>
                 <FieldShell label="Sensory Details">
-                  <TextArea value={draftEntity.sensoryDetails} onChange={(event) => updateEntity("sensoryDetails", event.target.value)} />
+                  <LinkifiedText value={draftEntity.sensoryDetails} onChange={(value) => updateEntity("sensoryDetails", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="History">
-                  <TextArea value={draftEntity.history} onChange={(event) => updateEntity("history", event.target.value)} />
+                  <LinkifiedText value={draftEntity.history} onChange={(value) => updateEntity("history", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Environmental Rules">
-                  <TextArea value={draftEntity.environmentalRules} onChange={(event) => updateEntity("environmentalRules", event.target.value)} />
+                  <LinkifiedText value={draftEntity.environmentalRules} onChange={(value) => updateEntity("environmentalRules", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Parent Location">
                   <Select
@@ -326,10 +344,10 @@ export function EntityEditorPage() {
             {"origin" in draftEntity ? (
               <>
                 <FieldShell label="Origin">
-                  <TextArea value={draftEntity.origin} onChange={(event) => updateEntity("origin", event.target.value)} />
+                  <LinkifiedText value={draftEntity.origin} onChange={(value) => updateEntity("origin", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Properties">
-                  <TextArea value={draftEntity.properties} onChange={(event) => updateEntity("properties", event.target.value)} />
+                  <LinkifiedText value={draftEntity.properties} onChange={(value) => updateEntity("properties", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Significance">
                   <Select
@@ -362,26 +380,58 @@ export function EntityEditorPage() {
             {"ideology" in draftEntity ? (
               <>
                 <FieldShell label="Ideology">
-                  <TextArea value={draftEntity.ideology} onChange={(event) => updateEntity("ideology", event.target.value)} />
+                  <LinkifiedText value={draftEntity.ideology} onChange={(value) => updateEntity("ideology", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Goals">
-                  <TextArea value={draftEntity.goals} onChange={(event) => updateEntity("goals", event.target.value)} />
+                  <LinkifiedText value={draftEntity.goals} onChange={(value) => updateEntity("goals", value)} snapshot={snapshot} />
                 </FieldShell>
                 <FieldShell label="Resources">
-                  <TextArea value={draftEntity.resources} onChange={(event) => updateEntity("resources", event.target.value)} />
+                  <LinkifiedText value={draftEntity.resources} onChange={(value) => updateEntity("resources", value)} snapshot={snapshot} />
                 </FieldShell>
               </>
             ) : null}
           </div>
 
           <div className="mt-6">
-            <FieldShell label="Notes">
-              <TextArea value={draftEntity.notes} onChange={(event) => updateEntity("notes", event.target.value)} />
+            <FieldShell label="Notes" hint="Use [[Name]] to link a wiki entry.">
+              <LinkifiedText
+                value={draftEntity.notes}
+                onChange={(value) => updateEntity("notes", value)}
+                snapshot={snapshot}
+              />
             </FieldShell>
           </div>
         </div>
 
         <div className="space-y-6">
+          <div className="panel p-6">
+            <h3 className="font-display text-3xl font-bold">Backlinks</h3>
+            <div className="mt-2 text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">
+              Everywhere this entry is referenced
+            </div>
+            <div className="mt-4 space-y-3">
+              {backlinks.length === 0 ? (
+                <div className="text-sm text-[color:var(--muted)]">
+                  No backlinks yet. Once scenes mention this entry or link to it, they will show up here automatically.
+                </div>
+              ) : (
+                backlinks.map((backlink) => (
+                  <Link
+                    key={backlink.id}
+                    to={backlink.route}
+                    className="block rounded-2xl border border-[color:var(--line)] p-4 transition hover:bg-white/40 dark:hover:bg-white/5"
+                  >
+                    <div className="font-semibold">{backlink.title}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
+                      {backlink.sourceType}
+                    </div>
+                    <div className="mt-2 text-sm text-[color:var(--muted)]">{backlink.context}</div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+
           {validEntityType === "character" && relationshipDraft ? (
             <div className="panel p-6">
               <h3 className="font-display text-3xl font-bold">Relationships</h3>
@@ -453,7 +503,7 @@ export function EntityEditorPage() {
             </div>
           ) : null}
 
-          {validEntityType === "character" && membershipDraft ? (
+          {validEntityType === "character" && membershipDraft && modules.factions ? (
             <div className="panel p-6">
               <h3 className="font-display text-3xl font-bold">Faction Memberships</h3>
               <div className="mt-4 space-y-3">
@@ -529,11 +579,17 @@ export function EntityEditorPage() {
               <div className="mt-5 grid gap-3">
                 <div className="grid gap-3 md:grid-cols-2">
                   <Select value={linkDraft.targetEntityType} onChange={(event) => setLinkDraft({ ...linkDraft, targetEntityType: event.target.value as StoryEntityType, targetEntityId: "" })}>
-                    {(["character", "location", "item", "faction"] as StoryEntityType[]).map((option) => (
-                      <option key={option} value={option}>
-                        {entityLabels[option]}
-                      </option>
-                    ))}
+                    {(["character", "location", "item", "faction"] as StoryEntityType[])
+                      .filter((option) => {
+                        if (option === "item" && !modules.items) return false;
+                        if (option === "faction" && !modules.factions) return false;
+                        return true;
+                      })
+                      .map((option) => (
+                        <option key={option} value={option}>
+                          {entityLabels[option]}
+                        </option>
+                      ))}
                   </Select>
                   <Select value={linkDraft.targetEntityId} onChange={(event) => setLinkDraft({ ...linkDraft, targetEntityId: event.target.value })}>
                     <option value="">Choose target</option>
@@ -561,24 +617,27 @@ export function EntityEditorPage() {
             </div>
           ) : null}
 
-          <div className="panel p-6">
-            <h3 className="font-display text-3xl font-bold">Backlinks</h3>
-            <div className="mt-4 space-y-3">
-              {backlinks.length === 0 ? (
-                <div className="text-sm text-[color:var(--muted)]">No backlinks yet. Once scenes and draft mentions point here, they will show up automatically.</div>
-              ) : (
-                backlinks.map((backlink) => (
-                  <Link key={backlink.id} to={backlink.route} className="block rounded-2xl border border-[color:var(--line)] p-4 transition hover:bg-white/40 dark:hover:bg-white/5">
-                    <div className="font-semibold">{backlink.title}</div>
-                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">{backlink.sourceType}</div>
-                    <div className="mt-2 text-sm text-[color:var(--muted)]">{backlink.context}</div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
         </div>
       </section>
+
+      <Modal
+        open={graphOpen}
+        onClose={() => setGraphOpen(false)}
+        title="Relationship graph"
+        description="Drag nodes to position. Click any node to open that wiki entry."
+        widthClassName="max-w-6xl"
+      >
+        <RelationshipWeb
+          snapshot={snapshot}
+          projectId={projectId}
+          focusedEntityId={entity.id}
+          onEntityClick={(entityId) => {
+            setGraphOpen(false);
+            navigate(`/project/${projectId}/wiki/${entityId}`);
+          }}
+          heightClassName="h-[60vh]"
+        />
+      </Modal>
     </div>
   );
 }

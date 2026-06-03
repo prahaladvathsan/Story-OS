@@ -9,6 +9,7 @@ import type {
   Faction,
   FactionMembership,
   ForeshadowingPair,
+  ProjectModules,
   ProjectSnapshot,
   Scene,
   SceneArcTag,
@@ -90,6 +91,31 @@ export function getEntityByType(
   return getEntityCollection(snapshot as ProjectSnapshot, entityType).find((entity) => entity.id === entityId);
 }
 
+const allEntityTypes: StoryEntityType[] = ["character", "location", "item", "faction"];
+
+export function findEntityWithType(
+  snapshot: Pick<ProjectSnapshot, "characters" | "locations" | "items" | "factions">,
+  entityId: string,
+) {
+  for (const entityType of allEntityTypes) {
+    const entity = getEntityByType(snapshot, entityType, entityId);
+    if (entity) return { entity, entityType };
+  }
+  return undefined;
+}
+
+const allOnModules: ProjectModules = {
+  arcs: true,
+  foreshadowing: true,
+  factions: true,
+  items: true,
+  relationshipGraph: true,
+};
+
+export function getActiveModules(project: { settings: { modules?: ProjectModules } }): ProjectModules {
+  return project.settings.modules ?? allOnModules;
+}
+
 export function extractPlainText(content: JSONContent | null | undefined): string {
   if (!content) {
     return "";
@@ -118,7 +144,12 @@ export function extractPlainText(content: JSONContent | null | undefined): strin
   };
 
   visit(content);
-  return parts.join(" ").replace(/\s+\n/g, "\n").replace(/\n\s+/g, "\n").trim();
+  return parts
+    .join(" ")
+    .replace(/ +/g, " ")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .trim();
 }
 
 export function extractMentionsFromContent(content: JSONContent | null | undefined) {

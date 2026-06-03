@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Download, FileJson, FileText, Trash2, Upload } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Activity, Download, FileJson, FileText, Sparkles, Trash2, Upload } from "lucide-react";
 import { EmptyState } from "../components/shared/EmptyState";
 import { Button } from "../components/shared/Button";
 import { useProjectSnapshot } from "../hooks/useProjectSnapshot";
@@ -12,7 +12,32 @@ import {
   downloadSceneCsv,
   importProjectBackup,
 } from "../features/export/project-export";
-import { deleteProject } from "../data/repository";
+import { deleteProject, saveProject } from "../data/repository";
+import { getActiveModules } from "../data/selectors";
+import type { ProjectModules } from "../data/schema";
+
+const moduleLabels: Record<keyof ProjectModules, { label: string; description: string }> = {
+  arcs: {
+    label: "Arcs",
+    description: "Plot, character, and thematic arcs. Tag scenes with arc colors and see coverage.",
+  },
+  foreshadowing: {
+    label: "Foreshadowing tracker",
+    description: "Pair setup and payoff scenes. For plotters tracking long-range narrative threads.",
+  },
+  factions: {
+    label: "Factions",
+    description: "Groups, organizations, or houses. Adds the Factions entity type and membership tracking.",
+  },
+  items: {
+    label: "Items",
+    description: "Macguffins, weapons, symbols, and other named objects. Adds the Items entity type.",
+  },
+  relationshipGraph: {
+    label: "Relationship graph",
+    description: "Visual character-relationship map. Adds a \"View as graph\" launcher on character pages.",
+  },
+};
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -26,8 +51,90 @@ export function SettingsPage() {
     return <EmptyState title="Loading settings" description="Pulling together export and backup controls." />;
   }
 
+  const modules = getActiveModules(snapshot.project);
+
+  const toggleModule = async (key: keyof ProjectModules) => {
+    const nextModules: ProjectModules = { ...modules, [key]: !modules[key] };
+    await saveProject({
+      ...snapshot.project,
+      settings: { ...snapshot.project.settings, modules: nextModules },
+    });
+  };
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+    <div className="space-y-6">
+      <section className="panel p-6">
+        <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Modules</div>
+        <h2 className="mt-2 font-display text-3xl font-bold">Power features</h2>
+        <div className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
+          Off by default in new projects. Toggle on when you want them. Data isn't deleted when a module is off — its UI just hides.
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {(Object.keys(moduleLabels) as Array<keyof ProjectModules>).map((key) => {
+            const meta = moduleLabels[key];
+            const on = modules[key];
+            return (
+              <label
+                key={key}
+                className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[color:var(--line)] bg-white/40 p-4 transition hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => void toggleModule(key)}
+                  className="mt-1 h-4 w-4"
+                />
+                <div>
+                  <div className="text-sm font-semibold">{meta.label}</div>
+                  <div className="mt-1 text-xs leading-5 text-[color:var(--muted)]">{meta.description}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      {modules.arcs || modules.foreshadowing ? (
+        <section className="panel p-6">
+          <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Plot tools</div>
+          <h2 className="mt-2 font-display text-3xl font-bold">Plotter workspaces</h2>
+          <div className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
+            Advanced views for arc tracking and foreshadowing planning. Surfaced because their modules are enabled.
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {modules.arcs ? (
+              <Link
+                to={`/project/${projectId}/board/arcs`}
+                className="flex items-start gap-3 rounded-2xl border border-[color:var(--line)] bg-white/40 p-4 transition hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <Activity className="mt-1 shrink-0" size={20} />
+                <div>
+                  <div className="text-sm font-semibold">Arcs</div>
+                  <div className="mt-1 text-xs leading-5 text-[color:var(--muted)]">
+                    Create plot, character, and thematic arcs. Tag scenes and inspect coverage.
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+            {modules.foreshadowing ? (
+              <Link
+                to={`/project/${projectId}/board/foreshadowing`}
+                className="flex items-start gap-3 rounded-2xl border border-[color:var(--line)] bg-white/40 p-4 transition hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <Sparkles className="mt-1 shrink-0" size={20} />
+                <div>
+                  <div className="text-sm font-semibold">Foreshadowing</div>
+                  <div className="mt-1 text-xs leading-5 text-[color:var(--muted)]">
+                    Plant setup-payoff pairs. Track unresolved threads and red herrings.
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
       <section className="panel p-6">
         <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Persistence</div>
         <h2 className="mt-2 font-display text-3xl font-bold">Local-first data handling</h2>
@@ -144,6 +251,7 @@ export function SettingsPage() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }

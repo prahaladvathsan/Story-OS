@@ -8,3 +8,4 @@ test-results
 *.tsbuildinfo
 git-data
 .npm-cache
+.claude

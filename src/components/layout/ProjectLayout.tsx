@@ -7,33 +7,9 @@ import { useUiStore } from "../../store/ui-store";
 import { Button } from "../shared/Button";
 
 const projectNav = [
-  { to: "", label: "Dashboard", end: true },
-  { to: "bible/character", label: "Bible" },
-  { to: "board/kanban", label: "Board" },
-  { to: "draft", label: "Draft" },
-  { to: "settings", label: "Settings" },
-];
-
-const subNavGroups = [
-  {
-    prefix: "/bible",
-    items: [
-      ["character", "Characters"],
-      ["location", "Locations"],
-      ["item", "Items"],
-      ["faction", "Factions"],
-      ["relationships", "Relationships"],
-    ],
-  },
-  {
-    prefix: "/board",
-    items: [
-      ["kanban", "Kanban"],
-      ["timeline", "Timeline"],
-      ["arcs", "Arcs"],
-      ["foreshadowing", "Foreshadowing"],
-    ],
-  },
+  { to: "write", label: "Write" },
+  { to: "wiki", label: "Wiki" },
+  { to: "project", label: "Project" },
 ];
 
 export function ProjectLayout() {
@@ -78,8 +54,7 @@ export function ProjectLayout() {
           <nav className="flex flex-wrap gap-2">
             {projectNav.map((item) => (
               <NavLink
-                key={item.to || "dashboard"}
-                end={item.end}
+                key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   `rounded-full px-4 py-2 text-sm font-semibold transition ${
@@ -91,22 +66,6 @@ export function ProjectLayout() {
               </NavLink>
             ))}
           </nav>
-
-          <div className="flex flex-wrap gap-6 text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
-            {subNavGroups.map((group) => (
-              <div key={group.prefix} className="flex flex-wrap gap-2">
-                {group.items.map(([slug, label]) => (
-                  <NavLink
-                    key={slug}
-                    to={`${group.prefix.slice(1)}/${slug}`}
-                    className={({ isActive }) => (isActive ? "text-[color:var(--text)]" : "")}
-                  >
-                    {label}
-                  </NavLink>
-                ))}
-              </div>
-            ))}
-          </div>
         </header>
 
         <div className="no-print rounded-3xl border border-[color:var(--line)] bg-ember-100/40 px-4 py-3 text-sm text-[color:var(--muted)] dark:bg-ember-900/20">

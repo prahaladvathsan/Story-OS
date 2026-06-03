@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ProjectSnapshot, Scene } from "../../data/schema";
+import { getActiveModules } from "../../data/selectors";
 import { replaceSceneArcTags, saveScene } from "../../data/repository";
 import { Button } from "../../components/shared/Button";
 import { FieldShell, Select, TextArea, TextInput } from "../../components/shared/Field";
+import { LinkifiedText } from "../../components/shared/LinkifiedText";
 import { useAutosave } from "../../hooks/useAutosave";
 import { StatusBadge } from "../../components/shared/StatusBadge";
 
@@ -50,6 +52,8 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
     );
   }
 
+  const modules = getActiveModules(snapshot.project);
+
   const toggleArrayValue = (items: string[], value: string) =>
     items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
 
@@ -88,8 +92,12 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
         <FieldShell label="Slug Line">
           <TextInput value={draft.slugLine} onChange={(event) => setDraft({ ...draft, slugLine: event.target.value })} />
         </FieldShell>
-        <FieldShell label="Summary">
-          <TextArea value={draft.summary} onChange={(event) => setDraft({ ...draft, summary: event.target.value })} />
+        <FieldShell label="Summary" hint="Use [[Name]] to link a wiki entry.">
+          <LinkifiedText
+            value={draft.summary}
+            onChange={(value) => setDraft({ ...draft, summary: value })}
+            snapshot={snapshot}
+          />
         </FieldShell>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -148,7 +156,7 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
           </Select>
         </FieldShell>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 ${modules.items ? "md:grid-cols-2" : ""}`}>
           <div className="rounded-2xl border border-[color:var(--line)] p-4">
             <div className="text-sm font-semibold">Characters Present</div>
             <div className="mt-3 grid gap-2">
@@ -164,42 +172,50 @@ export function SceneDetailPanel({ snapshot, sceneId, onClose }: SceneDetailPane
               ))}
             </div>
           </div>
+          {modules.items ? (
+            <div className="rounded-2xl border border-[color:var(--line)] p-4">
+              <div className="text-sm font-semibold">Items Involved</div>
+              <div className="mt-3 grid gap-2">
+                {snapshot.items.map((item) => (
+                  <label key={item.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={draft.itemsInvolved.includes(item.id)}
+                      onChange={() => setDraft({ ...draft, itemsInvolved: toggleArrayValue(draft.itemsInvolved, item.id) })}
+                    />
+                    {item.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {modules.arcs ? (
           <div className="rounded-2xl border border-[color:var(--line)] p-4">
-            <div className="text-sm font-semibold">Items Involved</div>
-            <div className="mt-3 grid gap-2">
-              {snapshot.items.map((item) => (
-                <label key={item.id} className="flex items-center gap-2 text-sm">
+            <div className="text-sm font-semibold">Arc Tags</div>
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              {snapshot.arcs.map((arc) => (
+                <label key={arc.id} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={draft.itemsInvolved.includes(item.id)}
-                    onChange={() => setDraft({ ...draft, itemsInvolved: toggleArrayValue(draft.itemsInvolved, item.id) })}
+                    checked={selectedArcIds.includes(arc.id)}
+                    onChange={() => toggleArcTag(arc.id)}
                   />
-                  {item.name}
+                  <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: arc.color }} />
+                  {arc.name}
                 </label>
               ))}
             </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="rounded-2xl border border-[color:var(--line)] p-4">
-          <div className="text-sm font-semibold">Arc Tags</div>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {snapshot.arcs.map((arc) => (
-              <label key={arc.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedArcIds.includes(arc.id)}
-                  onChange={() => toggleArcTag(arc.id)}
-                />
-                <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: arc.color }} />
-                {arc.name}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <FieldShell label="Notes">
-          <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
+        <FieldShell label="Notes" hint="Use [[Name]] to link a wiki entry.">
+          <LinkifiedText
+            value={draft.notes}
+            onChange={(value) => setDraft({ ...draft, notes: value })}
+            snapshot={snapshot}
+          />
         </FieldShell>
 
         {foreshadowing.length > 0 ? (
